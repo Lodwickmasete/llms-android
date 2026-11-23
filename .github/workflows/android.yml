@@ -1,3 +1,4 @@
+
 name: Android APK Build
 
 on:
@@ -30,19 +31,45 @@ jobs:
           packages: 'platform-tools'
 
       - name: Install required SDK packages
-        run: sdkmanager "platforms;android-34" "build-tools;34.0.0"
+        run: |
+          sdkmanager "platforms;android-34" "build-tools;34.0.0"
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.13'
 
-      - name: Build debug APK
-        run: gradle :app:assembleDebug
+      - name: Build arm64-v8a debug APK
+        run: |
+          gradle :app:assembleDebug --stacktrace --info
+
+      - name: Verify APK architecture
+        run: |
+          APK=$(find app/build/outputs/apk/debug -name "*.apk" | head -n 1)
+
+          if [ -z "$APK" ]; then
+            echo "APK not found"
+            exit 1
+          fi
+
+          echo "Checking APK: $APK"
+
+          unzip -l "$APK" | grep 'lib/' || true
+
+          ARCHS=$(unzip -Z1 "$APK" | grep '^lib/' | cut -d/ -f2 | sort -u)
+
+          for ARCH in $ARCHS; do
+            if [ "$ARCH" != "arm64-v8a" ]; then
+              echo "Unexpected architecture: $ARCH"
+              exit 1
+            fi
+          done
+
+          echo "Architecture verification passed"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: llms-debug-apk
+          name: llms-arm64-v8a-debug-apk
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
