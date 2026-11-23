@@ -3,6 +3,11 @@ plugins {
 }
 
 android {
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
 	compileSdk 34
 	
 	useLibrary 'org.apache.http.legacy'
